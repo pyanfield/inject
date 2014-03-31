@@ -1,4 +1,5 @@
 // Package inject provides utilities for mapping and injecting dependencies in various ways.
+// inject 包主要是提供了多种方式的公用映射和依赖注入
 package inject
 
 import (
@@ -15,6 +16,8 @@ type Injector interface {
 	// SetParent sets the parent of the injector. If the injector cannot find a
 	// dependency in its Type map it will check its parent before returning an
 	// error.
+	// SetParent 主要是设置 injector的父类，如果injector在它得 Type map中找不到依赖对象，
+	// 那么就去它得父类中查找，否则返回一个 error
 	SetParent(Injector)
 }
 
