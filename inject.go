@@ -131,9 +131,11 @@ func (inj *injector) Apply(val interface{}) error {
 	t := v.Type()
 
 	for i := 0; i < v.NumField(); i++ {
+		// 返回结构体中字段得 Value 类型
 		f := v.Field(i)
+		// 返回结构体内字段得 StructField 描述
 		structField := t.Field(i)
-		// 如果结构体中 field 值可以设置，且 type 得 structField 的 tag 是 inject
+		// 如果结构体中 field 值可以设置，如果该字段得 structField 描述的 tag 是 inject
 		//
 		if f.CanSet() && structField.Tag == "inject" {
 			ft := f.Type()
