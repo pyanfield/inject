@@ -62,10 +62,19 @@ type injector struct {
 
 // InterfaceOf dereferences a pointer to an Interface type.
 // It panics if value is not an pointer to an interface.
+// InterfaceOf 解引用一个指针，使其指向一个 Interface 类型
+// 如果 value 不是一个指向 interface 得指针，将 panic
 func InterfaceOf(value interface{}) reflect.Type {
+	// 返回 value 得 reflection type
 	t := reflect.TypeOf(value)
 
+	// 返回一个代表类型得常量
+	// Kind 返回得是最根本得类型
+	// 	type MyInt int
+	//  var x MyInt = 7
+	//  Kind 返回得就是int,而如果用 Type 返回得则是 MyInt
 	for t.Kind() == reflect.Ptr {
+		// 因为 t 为一个指针类型，为了得到 t 真正得指向得值
 		t = t.Elem()
 	}
 
@@ -124,6 +133,8 @@ func (inj *injector) Apply(val interface{}) error {
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		structField := t.Field(i)
+		// 如果结构体中 field 值可以设置，且 type 得 structField 的 tag 是 inject
+		//
 		if f.CanSet() && structField.Tag == "inject" {
 			ft := f.Type()
 			v := inj.Get(ft)
