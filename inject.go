@@ -52,6 +52,7 @@ type TypeMapper interface {
 	Set(reflect.Type, reflect.Value) TypeMapper
 	// Returns the Value that is mapped to the current type. Returns a zeroed Value if
 	// the Type has not been mapped.
+	// 返回当前 refelct.Type 所映射的 reflect.Value
 	Get(reflect.Type) reflect.Value
 }
 
@@ -117,6 +118,7 @@ func (inj *injector) Invoke(f interface{}) ([]reflect.Value, error) {
 // Maps dependencies in the Type map to each field in the struct
 // that is tagged with 'inject'.
 // Returns an error if the injection fails.
+// 将结构体中的标记为 'inject' 的字段值更新成新的结构体中的值
 func (inj *injector) Apply(val interface{}) error {
 	v := reflect.ValueOf(val)
 
@@ -136,7 +138,8 @@ func (inj *injector) Apply(val interface{}) error {
 		// 返回结构体内字段得 StructField 描述
 		structField := t.Field(i)
 		// 如果结构体中 field 值可以设置，如果该字段得 structField 描述的 tag 是 inject
-		//
+		// 则检查当前的结构体中的字段的 reflect.Type 和 reflect.Value 映射表
+		// 将当前的 Type 对应的 Value 值跟新成 val 的值
 		if f.CanSet() && structField.Tag == "inject" {
 			ft := f.Type()
 			v := inj.Get(ft)
@@ -154,6 +157,7 @@ func (inj *injector) Apply(val interface{}) error {
 
 // Maps the concrete value of val to its dynamic type using reflect.TypeOf,
 // It returns the TypeMapper registered in.
+// 将当前 val 的类型和值映射表注册到当前的 TypeMapper 中
 func (i *injector) Map(val interface{}) TypeMapper {
 	i.values[reflect.TypeOf(val)] = reflect.ValueOf(val)
 	return i
@@ -166,6 +170,8 @@ func (i *injector) MapTo(val interface{}, ifacePtr interface{}) TypeMapper {
 
 // Maps the given reflect.Type to the given reflect.Value and returns
 // the Typemapper the mapping has been registered in.
+// 给当前的 reflect.Type 赋新的 reflect.Value 值
+// 将 val 值重新映射到 injector 的Type,Value对应关系中
 func (i *injector) Set(typ reflect.Type, val reflect.Value) TypeMapper {
 	i.values[typ] = val
 	return i
@@ -173,6 +179,8 @@ func (i *injector) Set(typ reflect.Type, val reflect.Value) TypeMapper {
 
 func (i *injector) Get(t reflect.Type) reflect.Value {
 	val := i.values[t]
+	// 判断 Value是否是零值，如果是零值则返回false.
+	// 如果其有父类，则去检测父类的 reflect.Value
 	if !val.IsValid() && i.parent != nil {
 		val = i.parent.Get(t)
 	}
