@@ -100,18 +100,22 @@ func New() Injector {
 // It panics if f is not a function
 func (inj *injector) Invoke(f interface{}) ([]reflect.Value, error) {
 	t := reflect.TypeOf(f)
-
+	// 创建一个参数数组
+	// NumIn() 返回函数的参数个数，如果 t 不是 Func 类型的话，将 Panic
 	var in = make([]reflect.Value, t.NumIn()) //Panic if t is not kind of Func
 	for i := 0; i < t.NumIn(); i++ {
+		// 返回第 i 个参数的类型
 		argType := t.In(i)
+		// 根据参数的Type ，去获得Value值
 		val := inj.Get(argType)
+		// 判断 Value 是否为有效值
 		if !val.IsValid() {
 			return nil, fmt.Errorf("Value not found for type %v", argType)
 		}
 
 		in[i] = val
 	}
-
+	// 调用函数，返回函数返回值
 	return reflect.ValueOf(f).Call(in), nil
 }
 
