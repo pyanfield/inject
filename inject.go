@@ -57,25 +57,26 @@ type TypeMapper interface {
 }
 
 type injector struct {
+	// 保存注入的参数
 	values map[reflect.Type]reflect.Value
 	parent Injector
 }
 
 // InterfaceOf dereferences a pointer to an Interface type.
 // It panics if value is not an pointer to an interface.
-// InterfaceOf 解引用一个指针，使其指向一个 Interface 类型
-// 如果 value 不是一个指向 interface 得指针，将 panic
+// 主要是用于获取参数类型
+// value 必须是接口类型的指针，如果不是将引发 panic
 func InterfaceOf(value interface{}) reflect.Type {
 	// 返回 value 得 reflection type
 	t := reflect.TypeOf(value)
 
 	// 返回一个代表类型得常量
-	// Kind 返回得是最根本得类型
+	// Kind 返回得是最底层类型
 	// 	type MyInt int
 	//  var x MyInt = 7
 	//  Kind 返回得就是int,而如果用 Type 返回得则是 MyInt
 	for t.Kind() == reflect.Ptr {
-		// 因为 t 为一个指针类型，为了得到 t 真正得指向得值
+		// 因为 t 为一个指针类型，为了得到 t 真正得指向得值,即底层类型
 		t = t.Elem()
 	}
 
@@ -87,6 +88,7 @@ func InterfaceOf(value interface{}) reflect.Type {
 }
 
 // New returns a new Injector.
+// 初始化 injector 结构体，返回一个指向 injector 结构体的指针，这个指针被 Injector 接口包装了。
 func New() Injector {
 	return &injector{
 		values: make(map[reflect.Type]reflect.Value),
@@ -98,6 +100,7 @@ func New() Injector {
 // Returns a slice of reflect.Value representing the returned values of the function.
 // Returns an error if the injection fails.
 // It panics if f is not a function
+// 主要是用于执行函数 f,f 的底层类型必须为 Func
 func (inj *injector) Invoke(f interface{}) ([]reflect.Value, error) {
 	t := reflect.TypeOf(f)
 	// 创建一个参数数组
@@ -123,6 +126,7 @@ func (inj *injector) Invoke(f interface{}) ([]reflect.Value, error) {
 // that is tagged with 'inject'.
 // Returns an error if the injection fails.
 // 将结构体中的标记为 'inject' 的字段值更新成新的结构体中的值
+// 主要作用是注入 struct
 func (inj *injector) Apply(val interface{}) error {
 	v := reflect.ValueOf(val)
 
@@ -141,9 +145,9 @@ func (inj *injector) Apply(val interface{}) error {
 		f := v.Field(i)
 		// 返回结构体内字段得 StructField 描述
 		structField := t.Field(i)
-		// 如果结构体中 field 值可以设置，如果该字段得 structField 描述的 tag 是 inject
+		// 该结构体字段是可导出字段，且该字段的 tag 是 `inject`
 		// 则检查当前的结构体中的字段的 reflect.Type 和 reflect.Value 映射表
-		// 将当前的 Type 对应的 Value 值跟新成 val 的值
+		// 为对应的类型注入新的值
 		if f.CanSet() && structField.Tag == "inject" {
 			ft := f.Type()
 			v := inj.Get(ft)
@@ -162,11 +166,13 @@ func (inj *injector) Apply(val interface{}) error {
 // Maps the concrete value of val to its dynamic type using reflect.TypeOf,
 // It returns the TypeMapper registered in.
 // 将当前 val 的类型和值映射表注册到当前的 TypeMapper 中
+// Map 和 MapTo 主要是用于注入参数
 func (i *injector) Map(val interface{}) TypeMapper {
 	i.values[reflect.TypeOf(val)] = reflect.ValueOf(val)
 	return i
 }
 
+// ifacePtr 必须是一个接口指针类型，否则 InterfaceOf 的时候会 panic
 func (i *injector) MapTo(val interface{}, ifacePtr interface{}) TypeMapper {
 	i.values[InterfaceOf(ifacePtr)] = reflect.ValueOf(val)
 	return i
@@ -181,6 +187,7 @@ func (i *injector) Set(typ reflect.Type, val reflect.Value) TypeMapper {
 	return i
 }
 
+// 获取注入的参数
 func (i *injector) Get(t reflect.Type) reflect.Value {
 	val := i.values[t]
 	// 判断 Value是否是零值，如果是零值则返回false.
@@ -191,6 +198,7 @@ func (i *injector) Get(t reflect.Type) reflect.Value {
 	return val
 }
 
+// 设置父 injector， 查找继承
 func (i *injector) SetParent(parent Injector) {
 	i.parent = parent
 }
