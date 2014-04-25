@@ -76,7 +76,7 @@ func InterfaceOf(value interface{}) reflect.Type {
 	//  var x MyInt = 7
 	//  Kind 返回得就是int,而如果用 Type 返回得则是 MyInt
 	for t.Kind() == reflect.Ptr {
-		// 因为 t 为一个指针类型，为了得到 t 真正得指向得值,即底层类型
+		// 因为 t 为一个指针类型，为了得到 t 真正得指向的底层类型
 		t = t.Elem()
 	}
 
