@@ -145,10 +145,10 @@ func (inj *injector) Apply(val interface{}) error {
 		f := v.Field(i)
 		// 返回结构体内字段得 StructField 描述
 		structField := t.Field(i)
-		// 该结构体字段是可导出字段，且该字段的 tag 是 `inject`
+		// 该结构体字段是可导出字段，且该字段的 tag 是 `inject` 或者不为空
 		// 则检查当前的结构体中的字段的 reflect.Type 和 reflect.Value 映射表
 		// 为对应的类型注入新的值
-		if f.CanSet() && structField.Tag == "inject" {
+		if f.CanSet() && (structField.Tag == "inject" || structField.Tag.Get("inject") != "") {
 			ft := f.Type()
 			v := inj.Get(ft)
 			if !v.IsValid() {
@@ -192,10 +192,29 @@ func (i *injector) Get(t reflect.Type) reflect.Value {
 	val := i.values[t]
 	// 判断 Value是否是零值，如果是零值则返回false.
 	// 如果其有父类，则去检测父类的 reflect.Value
+	if val.IsValid() {
+		return val
+	}
+
+	// no concrete types found, try to find implementors
+	// if t is an interface
+	// 如果不是具体的值，则判断是否是 Interface 类型，是否与 t 有相同的接口
+	if t.Kind() == reflect.Interface {
+		for k, v := range i.values {
+			if k.Implements(t) {
+				val = v
+				break
+			}
+		}
+	}
+
+	// Still no type found, try to look it up on the parent
 	if !val.IsValid() && i.parent != nil {
 		val = i.parent.Get(t)
 	}
+
 	return val
+
 }
 
 // 设置父 injector， 查找继承
